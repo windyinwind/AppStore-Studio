@@ -1,14 +1,21 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Use process.env.API_KEY directly for initialization as per guidelines
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function analyzeScreenshotColors(base64Image: string): Promise<{ backgroundColor: string, accentColor: string }> {
+  // Check if API Key is configured
+  const apiKey = process.env.API_KEY;
+
+  // If no API key is present, return defaults immediately without initializing the SDK
+  if (!apiKey) {
+    return { backgroundColor: "#ffffff", accentColor: "#007AFF" };
+  }
+
   try {
+    // Initialize SDK only when key is present and needed
+    const ai = new GoogleGenAI({ apiKey });
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      // Use the recommended parts object for multimodal contents
       contents: {
         parts: [
           { inlineData: { data: base64Image, mimeType: 'image/png' } },
@@ -28,12 +35,12 @@ export async function analyzeScreenshotColors(base64Image: string): Promise<{ ba
       }
     });
 
-    // Extract text output from the response.text property (not a method)
     const text = response.text;
     if (!text) throw new Error("AI returned empty response");
     return JSON.parse(text.trim());
   } catch (error) {
     console.error("Gemini Analysis failed:", error);
+    // Fallback to defaults on any error
     return { backgroundColor: "#ffffff", accentColor: "#007AFF" };
   }
 }
